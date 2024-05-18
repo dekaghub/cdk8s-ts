@@ -1,63 +1,39 @@
-import { Construct } from 'constructs';
 import { App, Chart, ChartProps } from 'cdk8s';
-import { IntOrString, KubeDeployment, KubeService, KubeSecret, KubeServiceAccount } from './imports/k8s';
-import * as path from 'path'
+import * as kplus from 'cdk8s-plus-29';
+import { Construct } from 'constructs';
 import * as fs from 'fs';
+import * as path from 'path';
 
 export class MyChart extends Chart {
   constructor(scope: Construct, id: string, props: ChartProps = {}) {
     super(scope, id, props);
 
-    const label = { app: 'issue-app' }
-
     const configJsonPath = path.join(__dirname, './dockerconfig.json');
     const configJsonContent = fs.readFileSync(configJsonPath, 'utf-8');
-    const configBase64 = Buffer.from(configJsonContent).toString('base64');
 
-    const dockerSecret = new KubeSecret(this, 'docker-secret', {
-      metadata: {
-        name: 'docker-secret',
+    const dockerSecret = new kplus.Secret(this, 'docker-secret', {
+      stringData: {
+        ".dockerconfigjson": configJsonContent
       },
-      type: "kubernetes.io/dockerconfigjson",
-      data: {
-        ".dockerconfigjson": configBase64
-      }
+      type: 'kubernetes.io/dockerconfigjson'
+    })
+    
+    const deployment = new kplus.Deployment(this, 'issue-deploy', {
+      replicas: 2,
+      dockerRegistryAuth: dockerSecret,
+      containers: [{
+        name: 'issue-container',
+        image: 'ddefie/issue-demo:1',
+        securityContext: { ensureNonRoot: false },
+        portNumber: 3000
+      }]
     })
 
-    const dockerServiceAccount = new KubeServiceAccount(this, 'docker-sa', {
-      metadata: {
-        name: 'docker-sa',
-      },
-      imagePullSecrets: [{ name: dockerSecret.name }]
+    deployment.exposeViaService({
+      serviceType: kplus.ServiceType.CLUSTER_IP,
+      ports: [{ port: 80, targetPort: 3000 }]
     })
 
-    new KubeService(this, 'issue-deploy-svc', {
-      spec: {
-        type: 'ClusterIP',
-        ports: [{ port: 80, targetPort: IntOrString.fromNumber(3000) }],
-        selector: label
-      }
-    });
-
-    new KubeDeployment(this, 'issue-deploy', {
-      spec: {
-        replicas: 2,
-        selector: { matchLabels: label },
-        template: {
-          metadata: { labels: label },
-          spec: {
-            serviceAccount: dockerServiceAccount.name,
-            containers: [
-              {
-                name: 'issue-container',
-                image: 'ddefie/issue-demo:1',
-                ports: [{ containerPort: 3000 }]
-              }
-            ]
-          }
-        }
-      }
-    })
   }
 }
 
