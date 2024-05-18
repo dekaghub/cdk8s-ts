@@ -12,8 +12,6 @@ export class MyChart extends Chart {
 
     const configJsonPath = path.join(__dirname, './dockerconfig.json');
     const configJsonContent = fs.readFileSync(configJsonPath, 'utf-8');
-
-    // Base64 encode of docker config json
     const configBase64 = Buffer.from(configJsonContent).toString('base64');
 
     const dockerSecret = new KubeSecret(this, 'docker-secret', {
