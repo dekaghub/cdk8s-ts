@@ -10,12 +10,13 @@ I couldn't find any way to add imagePullSecrets to a ServiceAccount using cdk8s-
 
 > dockerRegistryAuth: dockerSecret,
 
-
 ---
 
 [issue-app-github](https://github.com/dekaghub/issue-full-stack-app)
 
 * Check [main.ts](./main.ts) for cdk8s code
+
+* Check [issue-demo-example.k8s.yaml](./issue-demo-example.k8s.yaml) for the generated manifest
 
 * Check [dist](./dist/) folder for YAMLs.
 
@@ -29,3 +30,28 @@ I couldn't find any way to add imagePullSecrets to a ServiceAccount using cdk8s-
 
 ![app-example](https://i.imgur.com/Tir44tN.png)
 
+---
+
+### ArgoCD & cdk8s
+
+For the most part, I'll assume people use GitOps with private repos.
+
+For a public repo, I could've used **_ApiObject from cdk8s_** to make bitnami's Sealed Secrets for a Service Account and the Docker Registry Auth. But then I'd also have to copy paste the encrypted data, manually or through some scripting.
+
+```
+new ApiObject(this, 'git-sealed', {
+      apiVersion: 'bitnami/v1alpha1',
+      kind: "SealedSecret",
+      metadata: {
+        name: 'github-secret',
+        namespace: 'argocd'
+      },
+      spec: {
+        encryptedData:
+        {
+          sshPrivateKey: "someencryptedstring"
+        }
+      }
+```
+
+For this demo, I feel like creating k8s objects by translating it into TypeScript would defeat the purpose of cdk8s-plus.
