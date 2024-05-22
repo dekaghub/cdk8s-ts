@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: issue-app
+spec: {}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: issue-demo-docker-secret-c8954796
+  namespace: issue-app
+immutable: false
+stringData:
+  .dockerconfigjson: |-
+    {
+            "auths": {
+                    "https://index.docker.io/v1/": {
+                            "auth": "MySecretEncodedInBase64"
+                    }
+            }
+    }
+type: kubernetes.io/dockerconfigjson
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: issue-demo-issue-deploy-c8108639
+  namespace: issue-app
+spec:
+  minReadySeconds: 0
+  progressDeadlineSeconds: 600
+  replicas: 2
+  selector:
+    matchLabels:
+      cdk8s.io/metadata.addr: issue-demo-issue-deploy-c8ac55a1
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        cdk8s.io/metadata.addr: issue-demo-issue-deploy-c8ac55a1
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - image: ddefie/issue-demo:1
+          imagePullPolicy: Always
+          name: issue-container
+          ports:
+            - containerPort: 3000
+          resources:
+            limits:
+              cpu: 1500m
+              memory: 2048Mi
+            requests:
+              cpu: 1000m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: false
+          startupProbe:
+            failureThreshold: 3
+            tcpSocket:
+              port: 3000
+      dnsPolicy: ClusterFirst
+      hostNetwork: false
+      imagePullSecrets:
+        - name: issue-demo-docker-secret-c8954796
+      restartPolicy: Always
+      securityContext:
+        fsGroupChangePolicy: Always
+        runAsNonRoot: true
+      setHostnameAsFQDN: false
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: issue-demo-issue-deploy-service-c8e75960
+  namespace: issue-app
+spec:
+  externalIPs: []
+  ports:
+    - port: 80
+      targetPort: 3000
+  selector:
+    cdk8s.io/metadata.addr: issue-demo-issue-deploy-c8ac55a1
+  type: ClusterIP

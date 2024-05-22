@@ -8,17 +8,26 @@ export class MyChart extends Chart {
   constructor(scope: Construct, id: string, props: ChartProps = {}) {
     super(scope, id, props);
 
+    const namespace_label = 'issue-app'
+    new kplus.Namespace(this, 'issue-ns', {
+      metadata: {
+        name: namespace_label,
+      }
+    });
+
     const configJsonPath = path.join(__dirname, './dockerconfig.json');
     const configJsonContent = fs.readFileSync(configJsonPath, 'utf-8');
 
     const dockerSecret = new kplus.Secret(this, 'docker-secret', {
+      metadata: { namespace: namespace_label },
       stringData: {
         ".dockerconfigjson": configJsonContent
       },
       type: 'kubernetes.io/dockerconfigjson'
     })
-    
+
     const deployment = new kplus.Deployment(this, 'issue-deploy', {
+      metadata: { namespace: namespace_label },
       replicas: 2,
       dockerRegistryAuth: dockerSecret,
       containers: [{
