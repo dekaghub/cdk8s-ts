@@ -3,9 +3,9 @@ name: Generate k8s yaml - Upload to Argo Repo
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "master" ]
 
 jobs:
 
