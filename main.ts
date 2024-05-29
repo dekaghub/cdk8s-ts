@@ -32,7 +32,7 @@ export class MyChart extends Chart {
       dockerRegistryAuth: dockerSecret,
       containers: [{
         name: 'issue-container',
-        image: 'ddefie/issue-demo:2',
+        image: 'ddefie/issue-demo:2.1',
         securityContext: { ensureNonRoot: false },
         portNumber: 3000
       }]
